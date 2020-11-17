@@ -27,6 +27,7 @@
   <a class="upload_link" href="/photos/add">Add photo</a>
   <a class="upload_link" href="/photos/add_direct">Add photo (direct upload)</a>
   <a class="upload_link" href="/photos/add_direct_unsigned">Add photo (unsigned direct upload)</a>
+  <a class="upload_link" href="#" id="uploadWidgetLink">Cloudinary Upload Widget</a>
 </div>
 
 <div class="photos">
@@ -37,9 +38,11 @@
       <% for(var i=0; i<photos.length; i++) {%>
         <% var photo =  photos[i] ; %>
         <div class="photo">
-          <h2><%= photo.title %></h2>
+          <h2><%= photo.title %> <form class="delete" action="/photos/delete" method="post"><input type="hidden" name="public_id" value="<%=photo.image.public_id%>">
+          	&times;
+          </form></h2>
           <a href="<%= cloudinary.url(photo.image.public_id)%>" target="_blank">
-            <%-cloudinary.image(photo.image.public_id, {width: 150, height: 150, quality: 80,format:'jpg',class:'thumbnail inline'})%>
+            <%- cloudinary.image(photo.image.public_id, {responsive: "true", responsive_placeholder: "blank", width: 150, height: 150, quality: "auto:eco", fetch_format: "auto", crop: "fit", class:'thumbnail inline'})%>
           </a>
 
           <div class="less_info">
@@ -87,4 +90,52 @@
   </ul>
 <% } %>
 </div>
+<script type="text/javascript">
+	$.cloudinary.responsive();
 
+	var widget = cloudinary.createUploadWidget({
+		cloudName: "dwfnhpxvo",
+		uploadPreset: "interview_test",
+		maxImageWidth: 500,
+		maxImageHeight: 500,
+		validateMaxWidthHeight: true,
+		tags: ["cl-Danny_Valentine"]
+	}, (error, result) => {
+		if (!error && result) {
+			if (result.event === "success") {
+				console.log('Done! Here is the image info: ', result.info);
+				addToPhotos(result.info);
+	  		}
+
+			if (result.event === "close") {
+		  		location.href = "/";
+	  		}
+  		} else if (error) {
+		  console.log(error);
+	  }
+	});
+
+	document.getElementById("uploadWidgetLink").addEventListener("click", function(){
+		widget.open();
+	}, false);
+
+	$("form.delete").click(function(){
+		if (confirm("Are you sure you want to delete this image?")) {
+			$(this).submit();
+		}
+	});
+
+	function addToPhotos(data) {
+		$.ajax({
+		    type: "POST",
+		    url: "/photos/add_via_widget",
+		    data: JSON.stringify(data),
+		    contentType: "application/json; charset=utf-8",
+		    dataType: "json",
+		    error: function(err) {
+				alert("Image uploaded to Cloudinary, but unable to add to local gallery!");
+				console.dir(err);
+		    }
+		});
+	}
+</script>
